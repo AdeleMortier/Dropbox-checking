@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>DB Check</title>
+    <style type="text/css">
+      .tg  {border-collapse:collapse;border-spacing:0;border-color:#bbb;}
+      .tg td{font-family:Arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#bbb;color:#594F4F;background-color:#E0FFEB;border-top-width:1px;border-bottom-width:1px;}
+      .tg th{font-family:Arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:0px;overflow:hidden;word-break:normal;border-color:#bbb;color:#493F3F;background-color:#9DE0AD;border-top-width:1px;border-bottom-width:1px;}
+      .tg .tg-yw4l{vertical-align:top}
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script>
+$(document).ready(function() {
+
+  
+
+ function update_values() {
+    $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+    $.getJSON($SCRIPT_ROOT+"/refresh",
+    function(data) {
+      var names = data.names
+      var dates = data.dates
+      var sizes = data.sizes
+      previous = document.getElementById("table_header");
+      for (var i = 0; i < names.length; i++) {
+        table_row = document.createElement("tr");
+        table_row.className = "tg-yw4l";
+        table_row.innerHTML = '<td class="tg-yw4l">' + names[i] + '</td><td class="tg-yw4l">' + dates[i] + '</td><td class="tg-yw4l">' + sizes[i] + '</td>';
+        previous.parentNode.insertBefore( table_row, previous.nextSibling );
+
+        previous = table_row;
+
+      }
+    });
+  }
+  update_values();
+
+});
+
+
+</script>
+
+</head>
+<body>
+  <h1 id="title">Realtime Dropbox check</h1>
+<table class="tg">
+  <tr id="table_header">
+    <th class="tg-yw4l">Filename</th>
+    <th class="tg-yw4l">Last modified</th> 
+    <th class="tg-yw4l">Size</th>
+  </tr>
+
+</table>
+    
+</body>
+</html>

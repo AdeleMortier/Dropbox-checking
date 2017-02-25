@@ -1,61 +1,43 @@
 from flask import Flask, request, session, g, redirect, url_for, abort, render_template, jsonify, flash
-import os
-import sqlite3
+import threading
+import time
 import db_to_mongo
 app = Flask(__name__)
-app.config.from_object(__name__) # load config from this file , flaskr.py
 
-# Load default config and override config from an environment variable
-app.config.update(dict(
-    DATABASE=os.path.join(app.root_path, 'flaskr.db'),
-    SECRET_KEY='development key',
-    USERNAME='admin',
-    PASSWORD='default'
-))
-app.config.from_envvar('FLASKR_SETTINGS', silent=True)
+def get_mongo():
+    if not hasattr(g, 'mongo_db_collection'):
+        g.mongo_db_collection = db_to_mongo.connect_mongo()
+    return g.mongo_db_collection
 
-def get_db():
-    """Opens a new database connection if there is none yet for the
-    current application context.
-    """
-    if not hasattr(g, 'sqlite_db'):
-        g.sqlite_db = connect_dbx()
-    return g.sqlite_db
+def get_dbx():
+    if not hasattr(g, 'dbx'):
+        g.dbx = db_to_mongo.connect_dbx()
+    return g.dbx
 
-@app.teardown_appcontext
-def close_db(error):
-    """Closes the database again at the end of the request."""
-    if hasattr(g, 'sqlite_db'):
-        g.sqlite_db.close()
+@app.before_first_request
+def sync():
+	mongo_collection = get_mongo()
+	dbx = get_dbx()
+	update_mongo_thread = threading.Thread(None, db_to_mongo.update_mongo_from_dbx, None, (dbx, mongo_collection), {}) 
+	update_mongo_thread.start() 
 
-        
 
-global dbx, mongo_coll
 
-@section.before_request
-def before_request():
-	dbx = db_to_mongo.connect_dbx()
-	mongo_coll = db_to_mongo.connect_mongo()
 
 @app.route('/')
 def update():
 	return render_template('template.html')
 
-
 @app.route('/refresh', methods= ['GET'])
 def refreshData():
-	"""dbx = db_to_mongo.connect_dbx()
-	db, docs = db_to_mongo.connect_mongo()
-	dbx_file_list = db_to_mongo.update_mongo_from_dbx(dbx, docs)"""
-	mongo_file_list = fetch_mongo(mongo_coll)
+	mongo_file_list = db_to_mongo.fetch_mongo(get_mongo())
 	name_list = []
 	date_list = []
 	size_list = []
-	for entry in dbx_file_list.keys():
+	for entry in mongo_file_list.keys():
 		name_list.append(entry)
 		date_list.append(dbx_file_list[entry][0])
 		size_list.append(dbx_file_list[entry][1])
-
 	return jsonify(names=name_list, dates=date_list, sizes=size_list)
 	
 if __name__ == '__main__':

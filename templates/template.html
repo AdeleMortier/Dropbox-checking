@@ -13,41 +13,40 @@
 <script>
 $(document).ready(function() {
 
-  
-
  function update_values() {
     $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
     $.getJSON($SCRIPT_ROOT+"/refresh",
     function(data) {
+
       var names = data.names
       var dates = data.dates
       var sizes = data.sizes
 
-      var previous_rows = document.getElementsByClassName("tg-row");
-      for (var i = 0; i < previous_rows.length; i++) {
-        console.log(previous_rows[i]);
-        previous_rows[i].parentNode.removeChild(previous_rows[i]);
+      //first we have to clear the rows of the previous call
+      var file_table = document.getElementById("file_table");
+      var number_rows = file_table.rows.length;
+      console.log(number_rows);
+      for (var i = 1; i < number_rows; i++) {
+        file_table.deleteRow(1); // we delete all rows except the header
       }
 
-
+      // then we create new rows with the current files
       var previous = document.getElementById("table_header");
+      console.log("creation des lignes");
       for (var i = 0; i < names.length; i++) {
         table_row = document.createElement("tr");
         table_row.className = "tg-yw4l tg-row";
         table_row.innerHTML = '<td class="tg-yw4l">' + names[i] + '</td><td class="tg-yw4l">' + dates[i] + '</td><td class="tg-yw4l">' + sizes[i] + ' Bytes</td>';
         previous.parentNode.insertBefore( table_row, previous.nextSibling );
-
         previous = table_row;
-
       }
     });
   }
   update_values();
-  update_values();
 
-  /*setInterval(function(){
-    update_values() // this will run after every 5 seconds
-  }, 2000);*/
+  setInterval(function(){
+    update_values();
+  }, 2000);
 });
 
 
@@ -56,7 +55,7 @@ $(document).ready(function() {
 </head>
 <body>
   <h1 id="title">Realtime Dropbox check</h1>
-<table class="tg">
+<table class="tg" id="file_table">
   <tr id="table_header">
     <th class="tg-yw4l tg-head">Filename</th>
     <th class="tg-yw4l tg-head">Last modified</th> 

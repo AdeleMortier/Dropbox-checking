@@ -36,8 +36,8 @@ def refreshData():
 	size_list = []
 	for entry in mongo_file_list.keys():
 		name_list.append(entry)
-		date_list.append(dbx_file_list[entry][0])
-		size_list.append(dbx_file_list[entry][1])
+		date_list.append(mongo_file_list[entry][0])
+		size_list.append(mongo_file_list[entry][1])
 	return jsonify(names=name_list, dates=date_list, sizes=size_list)
 	
 if __name__ == '__main__':

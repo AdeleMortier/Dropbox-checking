@@ -3,6 +3,10 @@ import pymongo
 import datetime
 from pymongo import MongoClient
 import hello
+from bson import Binary
+from bson.codec_options import CodecOptions
+
+
 
 global allowed_extensions
 allowed_extensions = ["pdf", "doc", "docx", "ppt", "pptx", "jpeg", "jpg", "png"]
@@ -23,7 +27,6 @@ def fetch_mongo(mongo_collection):
 	mongo_raw_file_list = mongo_collection.find()
 	for doc in mongo_raw_file_list:
 		mongo_file_list[doc["name"]] = [doc["date"], doc["size"]]
-	print "before update: ", mongo_file_list
 	return mongo_file_list
 
 def fetch_dbx(dbx):
@@ -33,6 +36,16 @@ def fetch_dbx(dbx):
 		dbx_file_list[entry.name] = [entry.server_modified, entry.size]
 	return dbx_file_list
 
+def dl_file(name, dbx):
+	dbx.files_download_to_file(name, "/docs/" + name)
+	file = open(name, "r")
+	read_file = Binary(file.read())
+	return read_file
+
+
+	
+
+	
 
 def add_or_modify_mongo(dbx, mongo_collection, dbx_file_list, mongo_file_list):
 	for entry_name in dbx_file_list.keys():
@@ -44,15 +57,15 @@ def add_or_modify_mongo(dbx, mongo_collection, dbx_file_list, mongo_file_list):
 		#the file already exists in MongoDB
 			if mongo_file_list[entry_name][0] != entry_date and entry_size <= 8000000:
 			#the file has been modified since the last checkpoint, but has not become too big
-				dbx.files_download_to_file(entry_name, "/docs/" + entry_name)
-				mongo_collection.find_one_and_update({"name" : entry_name}, {'$inc' : {"size" : entry_size-mongo_file_list[entry_name][1]}, '$set' : {"date" : entry_date}})
+				entry_file = dl_file(entry_name, dbx)
+				mongo_collection.find_one_and_update({"name" : entry_name}, {'$inc' : {"size" : entry_size-mongo_file_list[entry_name][1]}, '$set' : {"date" : entry_date}, '$set' : {"file" : entry_file}})
 		else:
 		#the file does not exist in MongoDB
 			entry_extension = entry_name[entry_name.rfind('.')+1:]
 			if (entry_extension in allowed_extensions) and (entry_size <= 8000000):
 			#test both filetype and size 
-				dbx.files_download_to_file(entry_name, "/docs/" + entry_name)
-				doc = {"name" : entry_name, "date" : entry_date, "size" : entry_size}
+				entry_file = dl_file(entry_name, dbx)
+				doc = {"name" : entry_name, "date" : entry_date, "size" : entry_size, "file" : entry_file}
 				mongo_collection.insert_one(doc)
 
 def delete_mongo(mongo_collection, dbx_file_list, mongo_file_list):
